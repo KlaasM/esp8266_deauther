@@ -15,6 +15,8 @@ SerialInterface::SerialInterface() {
   list = new SimpleList<String>;
 
   cli = new CommandParser();
+  serialBuffer = (char*)malloc(sizeof(serialBuffer)*BUFFER_SIZE);
+  memset(&serialBuffer[0], '\0', BUFFER_SIZE);
   
   cli->onNotFound = [](String cmdName){
    prntln("Command \""+cmdName+"\" not found :(");
@@ -25,7 +27,7 @@ SerialInterface::SerialInterface() {
   };
 
   // ===== HELP ===== //
-  cli->addCommand(new Command("help", [this](Command* cmd){
+  cli->addCommand(new Command("help", [](Command* cmd){
     prntln(CLI_HELP_HEADER);
 
     prntln(CLI_HELP_HELP);
@@ -81,7 +83,7 @@ SerialInterface::SerialInterface() {
 
   // ===== SYSTEM ===== //
   // sysinfo
-  cli->addCommand(new Command("sysinfo", [this](Command* cmd){
+  cli->addCommand(new Command("sysinfo", [](Command* cmd){
     prntln(CLI_SYSTEM_INFO);
     char s[150];
     sprintf(s,str(CLI_SYSTEM_OUTPUT).c_str(), 81920 - system_get_free_heap_size(), 100 - system_get_free_heap_size() / (81920 / 100), system_get_free_heap_size(), system_get_free_heap_size() / (81920 / 100), 81920);
@@ -126,7 +128,7 @@ SerialInterface::SerialInterface() {
 
   // ===== CLEAR ===== //
   // clear
-  cli->addCommand(new Command("clear",[this](Command* cmd){
+  cli->addCommand(new Command("clear",[](Command* cmd){
     for (int i = 0; i < 100; i++) prnt(HASHSIGN);
     for (int i = 0; i < 60; i++) prntln();
   },NULL));
@@ -165,9 +167,9 @@ SerialInterface::SerialInterface() {
 
   // ===== DRAW ===== //
   // draw [-w <width>] [-h <height>]
-  Command* drawCmd = new Command("draw", [this](Command* drawCmd){
-    int width = toInt(drawCmd->value("width"));
-    int height = toInt(drawCmd->value("height"));
+  Command* drawCmd = new Command("draw", [](Command* drawCmd){
+    int width = String(drawCmd->value("width")).toInt();
+    int height = String(drawCmd->value("height")).toInt();
     double scale = scan.getScaleFactor(height);
     
     prnt(String(DASH) + String(DASH) + String(DASH) + String(DASH) + String(VERTICALBAR)); // ----|
@@ -232,7 +234,7 @@ SerialInterface::SerialInterface() {
   
   // ===== STOP ===== //
   // stop [<mode: -all, -scan, -attack, -script>]
-  Command* stopCmd = new Command("stop", [this](Command* stopCmd){
+  Command* stopCmd = new Command("stop", [&](Command* stopCmd){
     led.setMode(LED_MODE_IDLE, true);
     
     bool hasScan = stopCmd->has("scan");
@@ -259,7 +261,7 @@ SerialInterface::SerialInterface() {
   
   // ===== SCAN ===== //
   // scan [<mode: -ap, -st, -all>] [-t <time>] [-c <continue-time>] [-ch <channel>]
-  Command* scanCmd = new Command("scan", [this](Command* scanCmd){
+  Command* scanCmd = new Command("scan", [&](Command* scanCmd){
     uint8_t scanMode = SCAN_MODE_ALL;
     if(scanCmd->has("stations")) scanMode = SCAN_MODE_STATIONS;
     else if(scanCmd->has("accesspoints")) scanMode = SCAN_MODE_APS;
@@ -267,7 +269,7 @@ SerialInterface::SerialInterface() {
     uint32_t time = getTime(scanCmd->value("time"));
 
     bool channelHop = !scanCmd->has("channel");
-    uint8_t channel = channelHop ? wifi_channel : toInt(scanCmd->value("channel"));
+    uint8_t channel = channelHop ? wifi_channel : String(scanCmd->value("channel")).toInt();
     
     uint8_t nextmode = scanCmd->has("continue") ? scanMode : SCAN_MODE_OFF;
     uint32_t continueTime = getTime(scanCmd->value("continue"));
@@ -287,7 +289,7 @@ SerialInterface::SerialInterface() {
 
   // ===== SHOW ===== //
   // show [-s] [<mode: -a, -ap, -st, -n, -ss>]
-  Command* showCmd = new Command("show",[this](Command* showCmd){
+  Command* showCmd = new Command("show",[](Command* showCmd){
     bool hasAP = showCmd->has("ap");
     bool hasSt = showCmd->has("station");
     bool hasName = showCmd->has("name");
@@ -316,12 +318,12 @@ SerialInterface::SerialInterface() {
 
   // ===== SELECT ===== //
   // select [<type: -a, -ap, -st, -n>] [-i <id>]
-  Command* selectCmd = new Command("select", [this](Command* selectCmd){
+  Command* selectCmd = new Command("select", [](Command* selectCmd){
     bool hasAP = selectCmd->has("accesspoint");
     bool hasSt = selectCmd->has("station");
     bool hasName = selectCmd->has("name");
     bool hasId = selectCmd->has("id");
-    int idValue = toInt(selectCmd->value("id"));
+    int idValue = String(selectCmd->value("id")).toInt();
     
     if(selectCmd->has("all") || (!hasAP && !hasSt && !hasName)){
       scan.selectAll();
@@ -342,12 +344,12 @@ SerialInterface::SerialInterface() {
 
   // ===== DESELECT ===== //
   // deselect [<type: -a, -ap, -st, -n>] [<id>]
-  Command* deselectCmd = new Command("deselect", [this](Command* deselectCmd){
+  Command* deselectCmd = new Command("deselect", [](Command* deselectCmd){
     bool hasAP = deselectCmd->has("accesspoint");
     bool hasSt = deselectCmd->has("station");
     bool hasName = deselectCmd->has("name");
     bool hasId = deselectCmd->has("id");
-    int idValue = toInt(deselectCmd->value("id"));
+    int idValue = String(deselectCmd->value("id")).toInt();
     
     if(deselectCmd->has("all") || (!hasAP && !hasSt && !hasName)){
       scan.deselectAll();
@@ -368,7 +370,7 @@ SerialInterface::SerialInterface() {
 
   // ===== ADD ===== //
   // addssid -name <ssid> [-wpa2] [-cl <clones>] [-f]
-  Command* addssidCmd = new Command("addssid", [this](Command* addssidCmd){
+  Command* addssidCmd = new Command("addssid", [](Command* addssidCmd){
     
   },[](){
     
@@ -568,13 +570,11 @@ void SerialInterface::update() {
     loopTime = currentTime;
   } else {
     if (Serial.available()){
-      String input = Serial.readStringUntil('\n');
-      if(settings.getSerialEcho()){
-        prnt(HASHSIGN);
-        prnt(SPACE);
-        prntln(input);
-      }
-      cli->parseLines(input);
+      Serial.readBytesUntil('\n', serialBuffer, BUFFER_SIZE);
+      Serial.print("# ");
+      Serial.println(serialBuffer);
+      cli->parseLines(serialBuffer);
+      memset(&serialBuffer[0], '\0', BUFFER_SIZE);
     }
     /*
     if (enabled && Serial.available() > 0)

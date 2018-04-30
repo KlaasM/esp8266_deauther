@@ -1,18 +1,21 @@
 #include "Command.h"
 
-Command::Command(String keyword, std::function<void(Command* command)> runFnct, std::function<void()> onError){
-  Command::keyword = keyword;
+Command::Command(const char* name, std::function<void(Command* command)> runFnct, std::function<void()> onError){
+  Command::name = name;
   Command::runFnct = runFnct;
   Command::onError = onError;
 }
 
 Command::~Command(){
-  Argument* current = firstArg;
-  Argument* next;
-  while(current != NULL){
-    next = current->next;
-    delete current;
-    current = next;
+  if(name) delete name;
+  if(firstArg) delete firstArg;
+  
+  Argument* currentArg = firstArg;
+  Argument* nextArg;
+  while(currentArg != NULL){
+    nextArg = currentArg->next;
+    delete currentArg;
+    currentArg = nextArg;
   }
 }
 
@@ -27,12 +30,12 @@ void Command::error(){
     onError();
 }
 
-String Command::getName(){
-  return keyword;
+const char* Command::getName(){
+  return name;
 }
 
-bool Command::equals(String keyword, int argNum, Argument* firstArg){
-  if(Command::keyword != keyword) return false;
+bool Command::equals(char* name, int argNum, Argument* firstArg){
+  if(strcmp(Command::name, name) != 0) return false;
   if(argNum > Command::argNum) return false;
   
   resetArguments();
@@ -66,14 +69,14 @@ bool Command::equals(String keyword, int argNum, Argument* firstArg){
   return true;
 }
 
-bool Command::hasArg(String argName){
+bool Command::hasArg(const char* argName){
   return getArg(argName) != NULL;
 }
 
-Argument* Command::getArg(String argName){
+Argument* Command::getArg(const char* argName){
   Argument* h = firstArg;
   while(h != NULL){
-    if(h->getArgName() == argName || h->getAltName() == argName)
+    if(strcmp(h->getArgName(), argName) == 0 || strcmp(h->getAltName(), argName) == 0)
       return h;
     h = h->next;
   }
@@ -81,7 +84,7 @@ Argument* Command::getArg(String argName){
   return NULL;
 }
 
-bool Command::has(String argName){
+bool Command::has(const char* argName){
   Argument* arg = getArg(argName);
   if(arg) 
     return arg->wasGiven();
@@ -89,12 +92,12 @@ bool Command::has(String argName){
     return false;
 }
 
-String Command::value(String argName){
+char* Command::value(const char* argName){
   Argument* arg = getArg(argName);
   if(arg) 
     return arg->getValue();
   else 
-    return "";
+    return NULL;
 }
 
 void Command::resetArguments(){
@@ -105,20 +108,20 @@ void Command::resetArguments(){
   }
 }
 
-void Command::addOptArg(String argName, String altName, String defaultValue){
+void Command::addOptArg(const char* argName, const char* altName, const char* defaultValue){
   addArg(argName, altName, defaultValue, false);
 }
 
-void Command::addReqArg(String argName, String altName, String defaultValue){
+void Command::addReqArg(const char* argName, const char* altName, const char* defaultValue){
   addArg(argName, altName, defaultValue, true);
 }
 
-void Command::addArg(String argName, String altName, String defaultValue, bool required){
+void Command::addArg(const char* argName, const char* altName, const char* defaultValue, bool required){
   Argument* newArg = new Argument(argName, altName, defaultValue, required);
   addArg(newArg);
 }
 
-void Command::addArg(Argument* newArg){ 
+void Command::addArg(Argument* newArg){
   if(!hasArg(newArg->getArgName())){
     newArg->next = firstArg;
     firstArg = newArg;

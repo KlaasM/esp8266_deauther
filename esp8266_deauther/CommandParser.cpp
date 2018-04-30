@@ -5,60 +5,64 @@ CommandParser::CommandParser(){
 }
 
 CommandParser::~CommandParser(){
-  Command* current = firstCommand;
-  Command* next;
-  while(current != NULL){
-    next = current->next;
-    delete current;
-    current = next;
+  if(firstCommand) delete firstCommand;
+  
+  Command* currentCmd = firstCommand;
+  Command* nextCmd;
+  while(currentCmd != NULL){
+    nextCmd = currentCmd->next;
+    delete currentCmd;
+    currentCmd = nextCmd;
   }
+  
 }
 
-void CommandParser::parseLines(String str){
-  String tmpStr = "";
-  
-  char curChar = ' ';
-  char prevChar = ' ';
-  int strLen = str.length();
+void CommandParser::parseLines(char* str){
+  int h=1;
+  int i=0;
+  int strLen = strlen(str);
 
   if(strLen == 0) return;
   
-  for(int i=0;i<strLen;i++){
+  char prevChar;
+  char curChar = str[i];
+  
+  while(++i < strLen){
     prevChar = curChar;
-    curChar = str.charAt(i);
-
+    curChar = str[i];
+    
     if(prevChar == ';' && curChar == ';'){
-      parse(tmpStr.substring(0,tmpStr.length()-1));
-      tmpStr = "";
-    } else if((curChar == '\n' || curChar == '\r') && tmpStr.length() > 0){
-      parse(tmpStr);
-      tmpStr = "";
+      parse(&str[i-h-1], h);
+      h = 0;
+    } else if((curChar == '\n' || curChar == '\r') && h > 0){
+      parse(&str[i-h], h);
+      h = 0;
     } else{
-      tmpStr += curChar;
+      h++;
     }
   }
-
-  parse(tmpStr);
+  if(h>0) parse(&str[i-h], h);
 }
 
-void CommandParser::parse(String str){
+void CommandParser::parse(char* str, int length){
   Argument* argList = NULL;
-  String cmdName = "";
   int argNum = 0;
-  int strLen = str.length();
 
   bool escaped = false;
   bool inQuotes = false;
+  int h = 0;
   
   char tmpChar;
-  String tmpStr;
   Argument* tmpArg = NULL;
 
-  if(strLen == 0) return;
+  char* cmdName = NULL;
   
-  for(int i=0;i<=strLen;i++){
-    if(i == strLen) tmpChar = ' ';
-    else tmpChar = str.charAt(i);
+  for(int i=0;i<=length;i++){
+    if(i < length)
+      tmpChar = str[i];
+    else
+      tmpChar = '\0';
+      
 
     // escape character BACKSLASH
     if(tmpChar == '\\'){
@@ -75,59 +79,93 @@ void CommandParser::parse(String str){
       inQuotes = !inQuotes;
       continue;
     }
-    
-    
-    if(tmpStr.length() > 0 && !escaped && !inQuotes && (tmpChar == ' ' || tmpChar == '\r' || tmpChar == '\n')){
-
-      // add command name empty
-      if(cmdName.length() == 0){
+        
+    if(!escaped && !inQuotes && (tmpChar == ' ' || tmpChar == '\r' || tmpChar == '\n' || tmpChar == '\0')){
+      if(h == 0)
+        continue;
+        
+      // save command name
+      else if(!cmdName){
+        char* tmpStr = new char[h+1];
+        memcpy(&tmpStr[0], &str[i-h], h);
+        tmpStr[h] = '\0';
         cmdName = tmpStr;
       } 
 
+      // add argument
       else {
+        
         // add argument to list
-        if(tmpStr.charAt(0) == '-'){
-          tmpArg = new Argument(tmpStr.substring(1),"","",false);
+        if(str[i-h] == '-'){
+          h--;
+          char* tmpStr = new char[h+1];
+          memcpy(&tmpStr[0], &str[i-h], h);
+          tmpStr[h] = '\0';
+      
+          tmpArg = new Argument(tmpStr,"","",false);
           tmpArg->next = argList;
           argList = tmpArg;
           argNum++;
+
+          delete tmpStr;
         }
+        
         // add value to argument
         else{
+          char* tmpStr = new char[h+1];
+          memcpy(&tmpStr[0], &str[i-h], h);
+          tmpStr[h] = '\0';
+          
           if(tmpArg == NULL){
-            if(onParseError) onParseError(tmpStr);
-            return;
+            if(onParseError){
+              onParseError(tmpStr);
+            }
+          }else{
+            tmpArg->setValue(tmpStr);
+            tmpArg = NULL; // prevent overwrite of arg value
           }
-          tmpArg->setValue(tmpStr);
-          tmpArg = NULL; // prevent overwrite of arg value
+          
+          delete tmpStr;
         }
+        
       }
-      tmpStr = "";
+      
+      h = 0;
     } 
 
     // add chars to temp-string
     else {
-      tmpStr += tmpChar;
+      h++;
       escaped = false;
     }
     
   }
   
-  Command* h = firstCommand;
+  // go through list to find command
+  Command* cmd = firstCommand;
   bool found = false;
-  while(h != NULL && !found){
-    if(h->getName() == cmdName){
+  
+  while(cmd != NULL && !found){
+    if(strcmp(cmd->getName(), cmdName) == 0){
       found = true;
-      if(h->equals(cmdName, argNum, argList))
-        h->exec(h);
+      if(cmd->equals(cmdName, argNum, argList))
+        cmd->exec(cmd);
       else 
-        h->error();
+        cmd->error();
     }
-    h = h->next;
+    cmd = cmd->next;
   }
-
+  
   if(!found && onNotFound)
     onNotFound(cmdName);
+  
+  delete cmdName;
+  
+  while(argList != NULL){
+    tmpArg = argList->next;
+    delete argList;
+    argList = tmpArg;
+  }
 }
 
 void CommandParser::addCommand(Command* newCommand){

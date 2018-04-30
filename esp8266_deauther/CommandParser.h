@@ -10,13 +10,13 @@ class CommandParser {
     CommandParser();
     ~CommandParser();
     
-    void parse(String input);
-    void parseLines(String str);
+    void parseLines(char* str);
+    void parse(char* str, int length);
     
     void addCommand(Command* newCommand);
 
-    std::function<void(String cmdName)> onNotFound = NULL;
-    std::function<void(String invalidArgument)> onParseError = NULL;
+    std::function<void(char* cmdName)> onNotFound = NULL;
+    std::function<void(char* invalidArgument)> onParseError = NULL;
   private:
     Command* firstCommand = NULL;
 };

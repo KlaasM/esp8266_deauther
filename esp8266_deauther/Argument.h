@@ -8,23 +8,23 @@ class Argument {
   public:
     Argument* next = NULL;
     
-    Argument(String argName, String altName, String defaultValue, bool required);
+    Argument(const char* argName, const char* altName, const char* defaultValue, bool required);
     ~Argument();
 
-    String getArgName();
-    String getAltName();
-    String getValue();
+    const char* getArgName();
+    const char* getAltName();
+    char* getValue();
     bool wasGiven();
     bool isRequired();
     
-    void setValue(String value);
+    void setValue(char* value);
     
     void reset(); 
   private:
-    String argName = "";
-    String altName = "";
-    String defaultValue = "";
-    String value = "";
+    const char* argName = NULL;
+    const char* altName = NULL;
+    const char* defaultValue = NULL;
+    char* value = NULL;
     bool given = false;
     bool required = false;
 };

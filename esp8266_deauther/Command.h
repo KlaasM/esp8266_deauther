@@ -3,7 +3,6 @@
 
 #include <stddef.h>
 #include <functional>
-#include <stdarg.h>
 #include "Arduino.h"
 #include "Argument.h"
 
@@ -11,29 +10,29 @@ class Command {
   public:
     Command* next = NULL;
     
-    Command(String keyword, std::function<void(Command* command)> runFnct, std::function<void()> onError);
+    Command(const char* name, std::function<void(Command* command)> runFnct, std::function<void()> onError);
     ~Command();
 
-    String getName();
+    const char* getName();
     
     void exec(Command* command);
-    bool equals(String keyword, int argNum, Argument* firstArg);
+    bool equals(char* name, int argNum, Argument* firstArg);
     
-    void addOptArg(String argName, String altName, String defaultValue);
-    void addReqArg(String argName, String altName, String defaultValue);
-    void addArg(String argName, String altName, String defaultValue, bool required);
+    void addOptArg(const char* argName, const char* altName, const char* defaultValue);
+    void addReqArg(const char* argName, const char* altName, const char* defaultValue);
+    void addArg(const char* argName, const char* altName, const char* defaultValue, bool required);
     void addArg(Argument* newArg);
     
-    bool hasArg(String argName);
-    Argument* getArg(String argName);
+    bool hasArg(const char* argName);
+    Argument* getArg(const char* argName);
     
-    bool has(String argName);
-    String value(String argName);
+    bool has(const char* argName);
+    char* value(const char* argName);
     
     void resetArguments();
     void error();
   private:
-    String keyword = "";
+    const char* name = NULL;
     int argNum = 0;
     Argument* firstArg = NULL;
     std::function<void(Command* command)> runFnct = NULL;

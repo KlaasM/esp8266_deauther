@@ -1,26 +1,38 @@
 #include "Argument.h"
 
-Argument::Argument(String argName, String altName, String defaultValue, bool required){
-  Argument::argName = argName;
-  Argument::altName = altName;
-  Argument::defaultValue = defaultValue;
+Argument::Argument(const char* argName, const char* altName, const char* defaultValue, bool required){
+  char* newArgName = new char[strlen(argName)+1];
+  strcpy(newArgName, argName);
+  Argument::argName = newArgName;
+
+  char* newAltName = new char[strlen(altName)+1];
+  strcpy(newAltName, altName);
+  Argument::altName = newAltName;
+
+  char* newDefaultValue = new char[strlen(defaultValue)+1];
+  strcpy(newDefaultValue, defaultValue);
+  Argument::defaultValue = newDefaultValue;
+
   Argument::required = required;
   reset();
 }
 
 Argument::~Argument(){
-  
+  if(argName) delete argName;
+  if(altName) delete altName;
+  if(defaultValue) delete defaultValue;
+  if(value) delete value;
 }
 
-String Argument::getArgName(){
+const char* Argument::getArgName(){
   return argName;
 }
 
-String Argument::getAltName(){
+const char* Argument::getAltName(){
   return altName;
 }
 
-String Argument::getValue(){
+char* Argument::getValue(){
   return value;
 }
 
@@ -32,13 +44,16 @@ bool Argument::isRequired(){
   return required;
 }
 
-void Argument::setValue(String value){
-  Argument::value = value;
+void Argument::setValue(char* value){
+  char* newValue = new char[strlen(value)+1];
+  strcpy(newValue, value);
+  if(Argument::value) delete Argument::value;
+  Argument::value = newValue;
   given = true;
 }
 
 void Argument::reset(){
-  value = defaultValue;
+  setValue((char*)defaultValue);
   given = false;
 }
 
