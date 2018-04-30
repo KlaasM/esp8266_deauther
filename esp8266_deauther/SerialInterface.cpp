@@ -13,6 +13,455 @@
 
 SerialInterface::SerialInterface() {
   list = new SimpleList<String>;
+
+  cli = new CommandParser();
+  
+  cli->onNotFound = [](String cmdName){
+   prntln("Command \""+cmdName+"\" not found :(");
+  };
+  
+  cli->onParseError = [](String invalidArgument){
+    prntln("Error parsing command at \""+invalidArgument+"\"");
+  };
+
+  // ===== HELP ===== //
+  cli->addCommand(new Command("help", [this](Command* cmd){
+    prntln(CLI_HELP_HEADER);
+
+    prntln(CLI_HELP_HELP);
+    prntln(CLI_HELP_SCAN);
+    prntln(CLI_HELP_SHOW);
+    prntln(CLI_HELP_SELECT);
+    prntln(CLI_HELP_DESELECT);
+    prntln(CLI_HELP_SSID_A);
+    prntln(CLI_HELP_SSID_B);
+    prntln(CLI_HELP_SSID_C);
+    prntln(CLI_HELP_NAME_A);
+    prntln(CLI_HELP_NAME_B);
+    prntln(CLI_HELP_NAME_C);
+    prntln(CLI_HELP_SET_NAME);
+    prntln(CLI_HELP_ENABLE_RANDOM);
+    prntln(CLI_HELP_DISABLE_RANDOM);
+    prntln(CLI_HELP_LOAD);
+    prntln(CLI_HELP_SAVE);
+    prntln(CLI_HELP_REMOVE_A);
+    prntln(CLI_HELP_REMOVE_B);
+    prntln(CLI_HELP_ATTACK);
+    prntln(CLI_HELP_ATTACK_STATUS);
+    prntln(CLI_HELP_STOP);
+    prntln(CLI_HELP_SYSINFO);
+    prntln(CLI_HELP_CLEAR);
+    prntln(CLI_HELP_FORMAT);
+    prntln(CLI_HELP_PRINT);
+    prntln(CLI_HELP_DELETE);
+    prntln(CLI_HELP_REPLACE);
+    prntln(CLI_HELP_COPY);
+    prntln(CLI_HELP_RENAME);
+    prntln(CLI_HELP_RUN);
+    prntln(CLI_HELP_WRITE);
+    prntln(CLI_HELP_GET);
+    prntln(CLI_HELP_SET);
+    prntln(CLI_HELP_RESET);
+    prntln(CLI_HELP_CHICKEN);
+    prntln(CLI_HELP_REBOOT);
+    prntln(CLI_HELP_INFO);
+    prntln(CLI_HELP_COMMENT);
+    prntln(CLI_HELP_SEND_DEAUTH);
+    prntln(CLI_HELP_SEND_BEACON);
+    prntln(CLI_HELP_SEND_PROBE);
+    prntln(CLI_HELP_LED_A);
+    prntln(CLI_HELP_LED_B);
+    prntln(CLI_HELP_LED_ENABLE);
+    prntln(CLI_HELP_DRAW);
+    prntln(CLI_HELP_SCREEN_ON);
+    prntln(CLI_HELP_SCREEN_MODE);
+
+    prntln(CLI_HELP_FOOTER);
+  },NULL));
+
+  // ===== SYSTEM ===== //
+  // sysinfo
+  cli->addCommand(new Command("sysinfo", [this](Command* cmd){
+    prntln(CLI_SYSTEM_INFO);
+    char s[150];
+    sprintf(s,str(CLI_SYSTEM_OUTPUT).c_str(), 81920 - system_get_free_heap_size(), 100 - system_get_free_heap_size() / (81920 / 100), system_get_free_heap_size(), system_get_free_heap_size() / (81920 / 100), 81920);
+    prntln(String(s));
+    
+    prnt(CLI_SYSTEM_CHANNEL);
+    prntln(settings.getChannel());
+
+    uint8_t mac[6];
+    
+    prnt(CLI_SYSTEM_AP_MAC);
+    wifi_get_macaddr(SOFTAP_IF, mac);
+    prntln(macToStr(mac));
+
+    prnt(CLI_SYSTEM_ST_MAC);
+    wifi_get_macaddr(STATION_IF, mac);
+    prntln(macToStr(mac));
+
+    FSInfo fs_info;
+    SPIFFS.info(fs_info);
+    sprintf(s,str(CLI_SYSTEM_RAM_OUT).c_str(), fs_info.usedBytes, fs_info.usedBytes / (fs_info.totalBytes / 100), fs_info.totalBytes - fs_info.usedBytes, (fs_info.totalBytes - fs_info.usedBytes) / (fs_info.totalBytes / 100), fs_info.totalBytes);
+    prnt(String(s));
+    sprintf(s,str(CLI_SYSTEM_SPIFFS_OUT).c_str(), fs_info.blockSize, fs_info.pageSize);
+    prnt(String(s));
+    prntln(CLI_FILES);
+    Dir dir = SPIFFS.openDir(String(SLASH));
+    while (dir.next()) {
+      prnt(String(SPACE) + String(SPACE) + dir.fileName() + String(SPACE));
+      File f = dir.openFile("r");
+      prnt(int(f.size()));
+      prntln(str(CLI_BYTES));
+    }
+    printWifiStatus();
+    prntln(CLI_SYSTEM_FOOTER);
+  }, NULL));
+
+  // ===== REBOOT ===== //
+  // reboot
+  cli->addCommand(new Command("reboot",[](Command* cmd){
+      ESP.reset();
+  },NULL));
+
+  // ===== CLEAR ===== //
+  // clear
+  cli->addCommand(new Command("clear",[this](Command* cmd){
+    for (int i = 0; i < 100; i++) prnt(HASHSIGN);
+    for (int i = 0; i < 60; i++) prntln();
+  },NULL));
+  
+  // ===== FORMAT ==== //
+  // format
+  cli->addCommand(new Command("format",[](Command* cmd){
+    prnt(CLI_FORMATTING_SPIFFS);
+    SPIFFS.format();
+    prntln(SETUP_OK);
+  },NULL));
+
+  // ===== RESET ===== //
+  // reset
+  cli->addCommand(new Command("reset",[](Command* cmd){
+    settings.reset();
+  },NULL));
+
+  // ====== CHICKEN ===== //
+  // chicken
+  cli->addCommand(new Command("chicken",[](Command* cmd){
+    prntln(CLI_CHICKEN_OUTPUT);
+  },NULL));
+    
+  // ===== INFO ===== //
+  // info
+  cli->addCommand(new Command("info",[](Command* cmd){
+    prntln(CLI_INFO_HEADER);
+    prnt(CLI_INFO_SOFTWARE);
+    prntln(settings.getVersion());
+    prntln(CLI_INFO_COPYRIGHT);
+    prntln(CLI_INFO_LICENSE);
+    prntln(CLI_INFO_ADDON);
+    prntln(CLI_INFO_HEADER);
+  },NULL));
+
+  // ===== DRAW ===== //
+  // draw [-w <width>] [-h <height>]
+  Command* drawCmd = new Command("draw", [this](Command* drawCmd){
+    int width = toInt(drawCmd->value("width"));
+    int height = toInt(drawCmd->value("height"));
+    double scale = scan.getScaleFactor(height);
+    
+    prnt(String(DASH) + String(DASH) + String(DASH) + String(DASH) + String(VERTICALBAR)); // ----|
+    for (int j = 0; j < SCAN_PACKET_LIST_SIZE; j++) {
+      for (int k = 0; k < width; k++) prnt(EQUALS);
+    }
+    prntln(VERTICALBAR);
+    
+    for (int i = height; i >= 0; i--) {
+      char s[200];
+      if (i == height) sprintf(s,str(CLI_DRAW_OUTPUT).c_str(), scan.getMaxPacket() > (uint32_t)height ? scan.getMaxPacket() : (uint32_t)height);
+      else if (i == height / 2) sprintf(s,str(CLI_DRAW_OUTPUT).c_str(), scan.getMaxPacket() > (uint32_t)height ? scan.getMaxPacket()/2 : (uint32_t)height/2);
+      else if (i == 0) sprintf(s,str(CLI_DRAW_OUTPUT).c_str(), 0);
+      else{
+        s[0] = SPACE;
+        s[1] = SPACE;
+        s[2] = SPACE;
+        s[3] = SPACE;
+        s[4] = ENDOFLINE;
+      }
+      prnt(String(s));
+      
+      prnt(VERTICALBAR);
+      for (int j = 0; j < SCAN_PACKET_LIST_SIZE; j++) {
+        if (scan.getPackets(j)*scale > i) {
+          for (int k = 0; k < width; k++) prnt(HASHSIGN);
+        } else {
+          for (int k = 0; k < width; k++) prnt(SPACE);
+        }
+      }
+      prntln(VERTICALBAR);
+    }
+
+    prnt(String(DASH) + String(DASH) + String(DASH) + String(DASH) + String(VERTICALBAR)); // ----|
+    
+    for (int j = 0; j < SCAN_PACKET_LIST_SIZE; j++) {
+      for (int k = 0; k < width; k++) prnt(EQUALS);
+    }
+    prntln(VERTICALBAR);
+    
+    prnt(String(SPACE) + String(SPACE) + String(SPACE) + String(SPACE) + String(VERTICALBAR));
+    for (int j = 0; j < SCAN_PACKET_LIST_SIZE; j++) {
+      char s[6];
+      String helper = String(PERCENT)+DASH+(String)width+D;
+      if(j==0) sprintf(s,helper.c_str(),SCAN_PACKET_LIST_SIZE-1);
+      else if(j==SCAN_PACKET_LIST_SIZE/2) sprintf(s,helper.c_str(),SCAN_PACKET_LIST_SIZE/2);
+      else if(j==SCAN_PACKET_LIST_SIZE-1) sprintf(s,helper.c_str(),0);
+      else{
+        int k;
+        for (k = 0; k < width; k++) s[k] = SPACE;
+        s[k] = ENDOFLINE;
+      }
+      prnt(s);
+    } 
+    prntln(VERTICALBAR);
+  }, [](){
+    prntln("Invalid format. Did you mean \" draw [-w <width>] [-h <height>]\"?");
+  });
+  drawCmd->addOptArg("w","width","2");
+  drawCmd->addOptArg("h","height","25");
+  cli->addCommand(drawCmd);
+  
+  // ===== STOP ===== //
+  // stop [<mode: -all, -scan, -attack, -script>]
+  Command* stopCmd = new Command("stop", [this](Command* stopCmd){
+    led.setMode(LED_MODE_IDLE, true);
+    
+    bool hasScan = stopCmd->has("scan");
+    bool hasAttack = stopCmd->has("attack");
+    bool hasScript = stopCmd->has("script");
+    
+    if(stopCmd->has("all") || (!hasScan && !hasAttack && !hasScript)){
+      scan.stop();
+      attack.stop();
+      stopScript();
+    }else{
+      if(hasScan) scan.stop();
+      if(hasAttack) attack.stop();
+      if(hasScript) stopScript();
+    }
+  }, [](){
+    prntln("Invalid format. Did you mean \"stop [<mode: -all, -scan, -attack, -script>]\"?");
+  });
+  stopCmd->addOptArg("all","","");
+  stopCmd->addOptArg("scan","","");
+  stopCmd->addOptArg("attack","","");
+  stopCmd->addOptArg("script","","");
+  cli->addCommand(stopCmd);
+  
+  // ===== SCAN ===== //
+  // scan [<mode: -ap, -st, -all>] [-t <time>] [-c <continue-time>] [-ch <channel>]
+  Command* scanCmd = new Command("scan", [this](Command* scanCmd){
+    uint8_t scanMode = SCAN_MODE_ALL;
+    if(scanCmd->has("stations")) scanMode = SCAN_MODE_STATIONS;
+    else if(scanCmd->has("accesspoints")) scanMode = SCAN_MODE_APS;
+
+    uint32_t time = getTime(scanCmd->value("time"));
+
+    bool channelHop = !scanCmd->has("channel");
+    uint8_t channel = channelHop ? wifi_channel : toInt(scanCmd->value("channel"));
+    
+    uint8_t nextmode = scanCmd->has("continue") ? scanMode : SCAN_MODE_OFF;
+    uint32_t continueTime = getTime(scanCmd->value("continue"));
+    
+    scan.start(scanMode, time, nextmode, continueTime, channelHop, channel);
+  },[](){
+    prntln("Invalid format. Did you mean \"scan [<mode: -ap, -st, -all>] [-t <time>] [-c <continue-time>] [-ch <channel>]\"?");
+  });
+  
+  scanCmd->addOptArg("a","all","");
+  scanCmd->addOptArg("st","stations","");
+  scanCmd->addOptArg("ap","accesspoints","");
+  scanCmd->addOptArg("t","time","15000");
+  scanCmd->addOptArg("c","continue","10000");
+  scanCmd->addOptArg("ch","channel","1");
+  cli->addCommand(scanCmd);
+
+  // ===== SHOW ===== //
+  // show [-s] [<mode: -a, -ap, -st, -n, -ss>]
+  Command* showCmd = new Command("show",[this](Command* showCmd){
+    bool hasAP = showCmd->has("ap");
+    bool hasSt = showCmd->has("station");
+    bool hasName = showCmd->has("name");
+    bool hasSSID = showCmd->has("ssid");
+    bool selected = showCmd->has("selected");
+    
+    if(showCmd->has("all") || (!hasAP && !hasSt && !hasName && !hasSSID)){
+      selected ? scan.printSelected(): scan.printAll();
+      if(!selected) ssids.printAll();
+    }else{
+      if(hasAP) selected ? accesspoints.printSelected() : accesspoints.printAll();
+      if(hasSt) selected ? stations.printSelected() : stations.printAll();
+      if(hasName) selected ? names.printSelected() : names.printAll();
+      if(hasSSID && !selected) ssids.printAll();
+    }
+  },[](){
+    prntln("Invalid format. Did you mean \"scan show [-s] [<mode: -a, -ap, -st, -n, -ss>]\"?");
+  });
+  showCmd->addOptArg("s", "selected", "");
+  showCmd->addOptArg("a", "all", "");
+  showCmd->addOptArg("ap", "accesspoint", "");
+  showCmd->addOptArg("st", "station", "");
+  showCmd->addOptArg("n", "name", "");
+  showCmd->addOptArg("ss", "ssid", "");
+  cli->addCommand(showCmd);
+
+  // ===== SELECT ===== //
+  // select [<type: -a, -ap, -st, -n>] [-i <id>]
+  Command* selectCmd = new Command("select", [this](Command* selectCmd){
+    bool hasAP = selectCmd->has("accesspoint");
+    bool hasSt = selectCmd->has("station");
+    bool hasName = selectCmd->has("name");
+    bool hasId = selectCmd->has("id");
+    int idValue = toInt(selectCmd->value("id"));
+    
+    if(selectCmd->has("all") || (!hasAP && !hasSt && !hasName)){
+      scan.selectAll();
+    }else{
+      if(hasAP) hasId ? accesspoints.select(idValue) : accesspoints.selectAll();
+      if(hasSt) hasId ? stations.select(idValue) : stations.selectAll();
+      if(hasName) hasId ? names.select(idValue) : names.selectAll();
+    }
+  }, [](){
+    prntln("Invalid format. Did you mean \"select [<type: -a, -ap, -st, -n>] [-i <id>]\"?");
+  });
+  selectCmd->addOptArg("a","all","");
+  selectCmd->addOptArg("ap","accesspoint","");
+  selectCmd->addOptArg("st","station","");
+  selectCmd->addOptArg("n","name","");
+  selectCmd->addOptArg("i","id","0");
+  cli->addCommand(selectCmd);
+
+  // ===== DESELECT ===== //
+  // deselect [<type: -a, -ap, -st, -n>] [<id>]
+  Command* deselectCmd = new Command("deselect", [this](Command* deselectCmd){
+    bool hasAP = deselectCmd->has("accesspoint");
+    bool hasSt = deselectCmd->has("station");
+    bool hasName = deselectCmd->has("name");
+    bool hasId = deselectCmd->has("id");
+    int idValue = toInt(deselectCmd->value("id"));
+    
+    if(deselectCmd->has("all") || (!hasAP && !hasSt && !hasName)){
+      scan.deselectAll();
+    }else{
+      if(hasAP) hasId ? accesspoints.deselect(idValue) : accesspoints.deselectAll();
+      if(hasSt) hasId ? stations.deselect(idValue) : stations.deselectAll();
+      if(hasName) hasId ? names.deselect(idValue) : names.deselectAll();
+    }
+  }, [](){
+    prntln("Invalid format. Did you mean \"deselect [<type: -a, -ap, -st, -n>] [<id>]\"?");
+  });
+  deselectCmd->addOptArg("a","all","");
+  deselectCmd->addOptArg("ap","accesspoint","");
+  deselectCmd->addOptArg("st","station","");
+  deselectCmd->addOptArg("n","name","");
+  deselectCmd->addOptArg("i","id","0");
+  cli->addCommand(deselectCmd);
+
+  // ===== ADD ===== //
+  // addssid -name <ssid> [-wpa2] [-cl <clones>] [-f]
+  Command* addssidCmd = new Command("addssid", [this](Command* addssidCmd){
+    
+  },[](){
+    
+  });
+  addssidCmd->addReqArg("n","name","");
+  cli->addCommand(addssidCmd);
+  
+  // clonessid -s [-f]
+  
+  // clonessid -i <id> [-num <clones>] [-f]
+
+  // addname -name <name> <type: -ap, -st> <id> [-s] [-f]
+
+  // addname -name <name> [-m <mac>] [-ch <channel>] [-b <bssid>] [-s] [-f]
+
+  
+  /*
+  // ===== ADD ===== //
+  else if (list->size() >= 3 && eqlsCMD(0, CLI_ADD) && eqlsCMD(1, CLI_SSID)) {
+    
+    // add ssid -s [-f]
+    if(eqlsCMD(2, CLI_SELECT)){
+      bool force = eqlsCMD(3, CLI_FORCE);
+      ssids.cloneSelected(force);
+    }
+    
+    // add ssid <ssid> [-wpa2] [-cl <clones>] [-f]
+    // add ssid -ap <id> [-cl <clones>] [-f]
+    else{
+      String ssid = list->get(2);
+      bool wpa2 = false;
+      bool force = false;
+      int clones = 1;
+      int i = 3;
+  
+      if (eqlsCMD(2, CLI_AP)) {
+        ssid = accesspoints.getSSID(list->get(3).toInt());
+        wpa2 = accesspoints.getEncStr(list->get(3).toInt()) != " - ";
+        i = 4;
+      }
+  
+      while (i < list->size()) {
+        if (eqlsCMD(i, CLI_WPA2)) wpa2 = true;
+        else if (eqlsCMD(i, CLI_FORCE)) force = true;
+        else if (eqlsCMD(i, CLI_CLONES)) {
+          clones = list->get(i + 1).toInt();
+          i++;
+        } else parameterError(list->get(i));
+        i++;
+      }
+  
+      ssids.add(ssid, wpa2, clones, force);
+    }
+  }
+
+  // add name <name> [-ap <id>] [-s] [-f]
+  // add name <name> [-st <id>] [-s] [-f]
+  // add name <name> [-m <mac>] [-ch <channel>] [-b <bssid>] [-s] [-f]
+  else if (list->size() >= 3 && eqlsCMD(0, CLI_ADD) && eqlsCMD(1, CLI_NAME)) {
+    String name = list->get(2);
+    String mac;
+    uint8_t channel = wifi_channel;
+    String bssid;
+    bool selected = false;
+    bool force = false;
+
+    for (int i = 3; i < list->size(); i++) {
+      if (eqlsCMD(i, CLI_MAC)) mac = list->get(i + 1);
+      else if (eqlsCMD(i, CLI_AP)) mac = accesspoints.getMacStr(list->get(i + 1).toInt());
+      else if (eqlsCMD(i, CLI_STATION)) {
+        mac = stations.getMacStr(list->get(i + 1).toInt());
+        bssid = stations.getAPMacStr(list->get(i + 1).toInt());
+      }
+      else if (eqlsCMD(i, CLI_CHANNEL)) channel = (uint8_t)list->get(i + 1).toInt();
+      else if (eqlsCMD(i, CLI_BSSID)) bssid = list->get(i + 1);
+      else if (eqlsCMD(i, CLI_SELECT)){
+        selected = true;
+        i--;
+      } else if (eqlsCMD(i, CLI_FORCE)){
+        force = true;
+        i--;
+      } else {
+        parameterError(list->get(i));
+        i--;
+      }
+      i++;
+    }
+
+    if (name.length() == 0) prntln(CLI_ERROR_NAME_LEN);
+    else if (mac.length() == 0) prntln(CLI_ERROR_MAC_LEN);
+    else names.add(mac, name, bssid, channel, selected, force);
+  }
+  */
 }
 
 void SerialInterface::load() {
@@ -118,8 +567,18 @@ void SerialInterface::update() {
     
     loopTime = currentTime;
   } else {
+    if (Serial.available()){
+      String input = Serial.readStringUntil('\n');
+      if(settings.getSerialEcho()){
+        prnt(HASHSIGN);
+        prnt(SPACE);
+        prntln(input);
+      }
+      cli->parseLines(input);
+    }
+    /*
     if (enabled && Serial.available() > 0)
-      runCommands(Serial.readStringUntil(NEWLINE));
+      runCommands(Serial.readStringUntil(NEWLINE));*/
     if (continuously) {
       if (currentTime - loopTime > continueTime)
         executing = true;
@@ -206,244 +665,6 @@ void SerialInterface::runCommand(String input) {
   }
   
   if (list->size() == 0) return;
-
-  // ===== HELP ===== //
-  if (eqlsCMD(0, CLI_HELP)) {
-    prntln(CLI_HELP_HEADER);
-
-    prntln(CLI_HELP_HELP);
-    prntln(CLI_HELP_SCAN);
-    prntln(CLI_HELP_SHOW);
-    prntln(CLI_HELP_SELECT);
-    prntln(CLI_HELP_DESELECT);
-    prntln(CLI_HELP_SSID_A);
-    prntln(CLI_HELP_SSID_B);
-    prntln(CLI_HELP_SSID_C);
-    prntln(CLI_HELP_NAME_A);
-    prntln(CLI_HELP_NAME_B);
-    prntln(CLI_HELP_NAME_C);
-    prntln(CLI_HELP_SET_NAME);
-    prntln(CLI_HELP_ENABLE_RANDOM);
-    prntln(CLI_HELP_DISABLE_RANDOM);
-    prntln(CLI_HELP_LOAD);
-    prntln(CLI_HELP_SAVE);
-    prntln(CLI_HELP_REMOVE_A);
-    prntln(CLI_HELP_REMOVE_B);
-    prntln(CLI_HELP_ATTACK);
-    prntln(CLI_HELP_ATTACK_STATUS);
-    prntln(CLI_HELP_STOP);
-    prntln(CLI_HELP_SYSINFO);
-    prntln(CLI_HELP_CLEAR);
-    prntln(CLI_HELP_FORMAT);
-    prntln(CLI_HELP_PRINT);
-    prntln(CLI_HELP_DELETE);
-    prntln(CLI_HELP_REPLACE);
-    prntln(CLI_HELP_COPY);
-    prntln(CLI_HELP_RENAME);
-    prntln(CLI_HELP_RUN);
-    prntln(CLI_HELP_WRITE);
-    prntln(CLI_HELP_GET);
-    prntln(CLI_HELP_SET);
-    prntln(CLI_HELP_RESET);
-    prntln(CLI_HELP_CHICKEN);
-    prntln(CLI_HELP_REBOOT);
-    prntln(CLI_HELP_INFO);
-    prntln(CLI_HELP_COMMENT);
-    prntln(CLI_HELP_SEND_DEAUTH);
-    prntln(CLI_HELP_SEND_BEACON);
-    prntln(CLI_HELP_SEND_PROBE);
-    prntln(CLI_HELP_LED_A);
-    prntln(CLI_HELP_LED_B);
-    prntln(CLI_HELP_LED_ENABLE);
-    prntln(CLI_HELP_DRAW);
-    prntln(CLI_HELP_SCREEN_ON);
-    prntln(CLI_HELP_SCREEN_MODE);
-
-    prntln(CLI_HELP_FOOTER);
-  }
-
-  // ===== SCAN ===== //
-  // scan [<mode>] [-t <time>] [-c <continue-time>] [-ch <channel>]
-  else if (eqlsCMD(0, CLI_SCAN)) {
-    uint8_t scanMode = SCAN_MODE_ALL;
-    uint8_t nextmode = SCAN_MODE_OFF;
-    uint8_t channel = wifi_channel;
-    bool channelHop = true;
-    uint32_t time = 15000;
-    uint32_t continueTime = 10000;
-
-    for (int i = 1; i < list->size(); i++) {
-      if (eqlsCMD(i, CLI_AP)) scanMode = SCAN_MODE_APS;
-      else if (eqlsCMD(i, CLI_STATION)) scanMode = SCAN_MODE_STATIONS;
-      else if (eqlsCMD(i, CLI_ALL)) scanMode = SCAN_MODE_ALL;
-      else if (eqlsCMD(i, CLI_WIFI)) scanMode = SCAN_MODE_SNIFFER;
-      else if (eqlsCMD(i, CLI_TIME)) {
-        i++;
-        time = getTime(list->get(i));
-      } else if (eqlsCMD(i, CLI_CONTINUE)) {
-        i++;
-        nextmode = scanMode;
-        continueTime = getTime(list->get(i));
-      } else if (eqlsCMD(i, CLI_CHANNEL)) {
-        i++;
-        if(!eqlsCMD(i, CLI_ALL)){
-          channelHop = false;
-          channel = list->get(i).toInt();
-        }
-      } else {
-        parameterError(list->get(i));
-      }
-    }
-
-    scan.start(scanMode, time, nextmode, continueTime, channelHop, channel);
-  }
-
-  // ===== SHOW ===== //
-  else if (eqlsCMD(0, CLI_SHOW)) {
-    // show selected [<all/aps/stations/names/ssids>]
-    if (eqlsCMD(1, CLI_SELECT)) {
-      if (list->size() > 2) {
-        for (int i = 2; i < list->size(); i++) {
-          if (eqlsCMD(i, CLI_AP)) accesspoints.printSelected();
-          else if (eqlsCMD(i, CLI_STATION)) stations.printSelected();
-          else if (eqlsCMD(i, CLI_NAME)) names.printSelected();
-          else if (eqlsCMD(i, CLI_ALL)) scan.printSelected();
-          else parameterError(list->get(i));
-        }
-      } else {
-        scan.printSelected();
-      }
-    }
-
-    // show [<all/aps/stations/names/ssids>]
-    else {
-      if (list->size() > 1) {
-        for (int i = 1; i < list->size(); i++) {
-          if (eqlsCMD(i, CLI_AP)) accesspoints.printAll();
-          else if (eqlsCMD(i, CLI_STATION)) stations.printAll();
-          else if (eqlsCMD(i, CLI_NAME)) names.printAll();
-          else if (eqlsCMD(i, CLI_SSID)) ssids.printAll();
-          else if (eqlsCMD(i, CLI_ALL)) scan.printAll();
-          else parameterError(list->get(i));
-        }
-      } else {
-        scan.printAll();
-      }
-    }
-  }
-
-  // ===== (DE)SELECT ===== //
-  // select [<type>] [<id>]
-  // deselect [<type>] [<id>]
-  else if (eqlsCMD(0, CLI_SELECT) || eqlsCMD(0, CLI_DESELECT)) {
-    bool select = eqlsCMD(0, CLI_SELECT);
-    int mode = 0; // aps = 0, stations = 1, names = 2
-    int id = -1; // -1 = all, -2 name string
-
-    if (list->size() == 1 || eqlsCMD(1, CLI_ALL)) {
-      select ? scan.selectAll() : scan.deselectAll();
-      return;
-    }
-
-    if (list->size() == 2 || eqlsCMD(2, CLI_ALL)) id = -1;
-    else if (!isInt(list->get(2))) id = -2;
-    else id = list->get(2).toInt();
-
-    if (eqlsCMD(1, CLI_AP)) mode = 0;
-    else if (eqlsCMD(1, CLI_STATION)) mode = 1;
-    else if (eqlsCMD(1, CLI_NAME)) mode = 2;
-    else parameterError(list->get(1));
-
-    if (id >= 0) {
-      if (mode == 0) select ? accesspoints.select(id) : accesspoints.deselect(id);
-      else if (mode == 1) select ? stations.select(id) : stations.deselect(id);
-      else if (mode == 2) select ? names.select(id) : names.deselect(id);
-    } else if (id == -1) {
-      if (mode == 0) select ? accesspoints.selectAll() : accesspoints.deselectAll();
-      else if (mode == 1) select ? stations.selectAll() : stations.deselectAll();
-      else if (mode == 2) select ? names.selectAll() : names.deselectAll();
-    } else if (id == -2 && mode == 2) {
-      select ? names.select(list->get(2)) : names.deselect(list->get(2));
-    } else {
-      parameterError(list->get(1) + SPACE + list->get(2));
-    }
-  }
-
-  // ===== ADD ===== //
-  else if (list->size() >= 3 && eqlsCMD(0, CLI_ADD) && eqlsCMD(1, CLI_SSID)) {
-    
-    // add ssid -s [-f]
-    if(eqlsCMD(2, CLI_SELECT)){
-      bool force = eqlsCMD(3, CLI_FORCE);
-      ssids.cloneSelected(force);
-    }
-    
-    // add ssid <ssid> [-wpa2] [-cl <clones>] [-f]
-    // add ssid -ap <id> [-cl <clones>] [-f]
-    else{
-      String ssid = list->get(2);
-      bool wpa2 = false;
-      bool force = false;
-      int clones = 1;
-      int i = 3;
-  
-      if (eqlsCMD(2, CLI_AP)) {
-        ssid = accesspoints.getSSID(list->get(3).toInt());
-        wpa2 = accesspoints.getEncStr(list->get(3).toInt()) != " - ";
-        i = 4;
-      }
-  
-      while (i < list->size()) {
-        if (eqlsCMD(i, CLI_WPA2)) wpa2 = true;
-        else if (eqlsCMD(i, CLI_FORCE)) force = true;
-        else if (eqlsCMD(i, CLI_CLONES)) {
-          clones = list->get(i + 1).toInt();
-          i++;
-        } else parameterError(list->get(i));
-        i++;
-      }
-  
-      ssids.add(ssid, wpa2, clones, force);
-    }
-  }
-
-  // add name <name> [-ap <id>] [-s] [-f]
-  // add name <name> [-st <id>] [-s] [-f]
-  // add name <name> [-m <mac>] [-ch <channel>] [-b <bssid>] [-s] [-f]
-  else if (list->size() >= 3 && eqlsCMD(0, CLI_ADD) && eqlsCMD(1, CLI_NAME)) {
-    String name = list->get(2);
-    String mac;
-    uint8_t channel = wifi_channel;
-    String bssid;
-    bool selected = false;
-    bool force = false;
-
-    for (int i = 3; i < list->size(); i++) {
-      if (eqlsCMD(i, CLI_MAC)) mac = list->get(i + 1);
-      else if (eqlsCMD(i, CLI_AP)) mac = accesspoints.getMacStr(list->get(i + 1).toInt());
-      else if (eqlsCMD(i, CLI_STATION)) {
-        mac = stations.getMacStr(list->get(i + 1).toInt());
-        bssid = stations.getAPMacStr(list->get(i + 1).toInt());
-      }
-      else if (eqlsCMD(i, CLI_CHANNEL)) channel = (uint8_t)list->get(i + 1).toInt();
-      else if (eqlsCMD(i, CLI_BSSID)) bssid = list->get(i + 1);
-      else if (eqlsCMD(i, CLI_SELECT)){
-        selected = true;
-        i--;
-      } else if (eqlsCMD(i, CLI_FORCE)){
-        force = true;
-        i--;
-      } else {
-        parameterError(list->get(i));
-        i--;
-      }
-      i++;
-    }
-
-    if (name.length() == 0) prntln(CLI_ERROR_NAME_LEN);
-    else if (mac.length() == 0) prntln(CLI_ERROR_MAC_LEN);
-    else names.add(mac, name, bssid, channel, selected, force);
-  }
 
   // ===== SET NAME ==== //
   // set name <id> <newname>
@@ -648,98 +869,7 @@ void SerialInterface::runCommand(String input) {
   else if (eqlsCMD(0, CLI_SET) && list->size() == 3) {
     settings.set(list->get(1).c_str(), list->get(2));
   }
-
-  // ====== CHICKEN ===== //
-  else if (eqlsCMD(0, CLI_CHICKEN)) {
-    prntln(CLI_CHICKEN_OUTPUT);
-  }
-
-  // ===== STOP ===== //
-  // stop [<mode>]
-  else if (eqlsCMD(0, CLI_STOP)) {
-    led.setMode(LED_MODE_IDLE, true);
-    if (list->size() >= 2 && !(eqlsCMD(1, CLI_ALL))) {
-      for (int i = 1; i < list->size(); i++) {
-        if (eqlsCMD(i, CLI_SCAN)) scan.stop();
-        else if (eqlsCMD(i, CLI_ATTACK)) attack.stop();
-        else if (eqlsCMD(i, CLI_SCRIPT)) stopScript();
-        else parameterError(list->get(i));
-      }
-    } else {
-      scan.stop();
-      attack.stop();
-      stopScript();
-    }
-  }
-
-  // ===== SYSTEM ===== //
-  // sysinfo
-  else if (eqlsCMD(0, CLI_SYSINFO)) {
-    prntln(CLI_SYSTEM_INFO);
-    char s[150];
-    sprintf(s,str(CLI_SYSTEM_OUTPUT).c_str(), 81920 - system_get_free_heap_size(), 100 - system_get_free_heap_size() / (81920 / 100), system_get_free_heap_size(), system_get_free_heap_size() / (81920 / 100), 81920);
-    prntln(String(s));
-    
-    prnt(CLI_SYSTEM_CHANNEL);
-    prntln(settings.getChannel());
-
-    uint8_t mac[6];
-    
-    prnt(CLI_SYSTEM_AP_MAC);
-    wifi_get_macaddr(SOFTAP_IF, mac);
-    prntln(macToStr(mac));
-
-    prnt(CLI_SYSTEM_ST_MAC);
-    wifi_get_macaddr(STATION_IF, mac);
-    prntln(macToStr(mac));
-
-    FSInfo fs_info;
-    SPIFFS.info(fs_info);
-    sprintf(s,str(CLI_SYSTEM_RAM_OUT).c_str(), fs_info.usedBytes, fs_info.usedBytes / (fs_info.totalBytes / 100), fs_info.totalBytes - fs_info.usedBytes, (fs_info.totalBytes - fs_info.usedBytes) / (fs_info.totalBytes / 100), fs_info.totalBytes);
-    prnt(String(s));
-    sprintf(s,str(CLI_SYSTEM_SPIFFS_OUT).c_str(), fs_info.blockSize, fs_info.pageSize);
-    prnt(String(s));
-    prntln(CLI_FILES);
-    Dir dir = SPIFFS.openDir(String(SLASH));
-    while (dir.next()) {
-      prnt(String(SPACE) + String(SPACE) + dir.fileName() + String(SPACE));
-      File f = dir.openFile("r");
-      prnt(int(f.size()));
-      prntln(str(CLI_BYTES));
-    }
-    printWifiStatus();
-    prntln(CLI_SYSTEM_FOOTER);
-  }
-
-  // ===== RESET ===== //
-  // reset
-  else if (eqlsCMD(0, CLI_RESET)) {
-    settings.reset();
-  }
-
-  // ===== CLEAR ===== //
-  // clear
-  else if (eqlsCMD(0, CLI_CLEAR)) {
-    for (int i = 0; i < 100; i++)
-      prnt(HASHSIGN);
-    for (int i = 0; i < 60; i++)
-      prntln();
-  }
-
-  // ===== REBOOT ===== //
-  // reboot
-  else if (eqlsCMD(0, CLI_REBOOT)) {
-    ESP.reset();
-  }
-
-  // ===== FORMAT ==== //
-  // format
-  else if (eqlsCMD(0, CLI_FORMAT)) {
-    prnt(CLI_FORMATTING_SPIFFS);
-    SPIFFS.format();
-    prntln(SETUP_OK);
-  }
-
+  
   // ===== DELETE ==== //
   // delete <file> [<lineFrom>] [<lineTo>]
   else if (list->size() >= 2 && eqlsCMD(0, CLI_DELETE)) {
@@ -844,24 +974,12 @@ void SerialInterface::runCommand(String input) {
       }
     }
   }
-
+  
   // ===== PRINT ==== //
   // print <file> [<lines>]
   else if (list->size() >= 2 && eqlsCMD(0, CLI_PRINT)) {
     readFileToSerial(list->get(1), eqlsCMD(2, CLI_LINE));
     prntln();
-  }
-
-  // ===== INFO ===== //
-  // info
-  else if (eqlsCMD(0, CLI_INFO)) {
-    prntln(CLI_INFO_HEADER);
-    prnt(CLI_INFO_SOFTWARE);
-    prntln(settings.getVersion());
-    prntln(CLI_INFO_COPYRIGHT);
-    prntln(CLI_INFO_LICENSE);
-    prntln(CLI_INFO_ADDON);
-    prntln(CLI_INFO_HEADER);
   }
 
   // ===== SEND ===== //
@@ -982,69 +1100,6 @@ void SerialInterface::runCommand(String input) {
     }
   }
 
-  // ===== DRAW ===== //
-  else if (eqlsCMD(0, CLI_DRAW)) {
-    int height = 25;
-    int width = 2;
-    if (list->size() >= 2) height = list->get(1).toInt();
-    if (list->size() >= 3) width = list->get(2).toInt();
-    double scale = scan.getScaleFactor(height);
-
-    prnt(String(DASH) + String(DASH) + String(DASH) + String(DASH) + String(VERTICALBAR)); // ----|
-    for (int j = 0; j < SCAN_PACKET_LIST_SIZE; j++) {
-      for (int k = 0; k < width; k++) prnt(EQUALS);
-    }
-    prntln(VERTICALBAR);
-    
-    for (int i = height; i >= 0; i--) {
-      char s[200];
-      if (i == height) sprintf(s,str(CLI_DRAW_OUTPUT).c_str(), scan.getMaxPacket() > (uint32_t)height ? scan.getMaxPacket() : (uint32_t)height);
-      else if (i == height / 2) sprintf(s,str(CLI_DRAW_OUTPUT).c_str(), scan.getMaxPacket() > (uint32_t)height ? scan.getMaxPacket()/2 : (uint32_t)height/2);
-      else if (i == 0) sprintf(s,str(CLI_DRAW_OUTPUT).c_str(), 0);
-      else{
-        s[0] = SPACE;
-        s[1] = SPACE;
-        s[2] = SPACE;
-        s[3] = SPACE;
-        s[4] = ENDOFLINE;
-      }
-      prnt(String(s));
-      
-      prnt(VERTICALBAR);
-      for (int j = 0; j < SCAN_PACKET_LIST_SIZE; j++) {
-        if (scan.getPackets(j)*scale > i) {
-          for (int k = 0; k < width; k++) prnt(HASHSIGN);
-        } else {
-          for (int k = 0; k < width; k++) prnt(SPACE);
-        }
-      }
-      prntln(VERTICALBAR);
-    }
-
-    prnt(String(DASH) + String(DASH) + String(DASH) + String(DASH) + String(VERTICALBAR)); // ----|
-    
-    for (int j = 0; j < SCAN_PACKET_LIST_SIZE; j++) {
-      for (int k = 0; k < width; k++) prnt(EQUALS);
-    }
-    prntln(VERTICALBAR);
-    
-    prnt(String(SPACE) + String(SPACE) + String(SPACE) + String(SPACE) + String(VERTICALBAR));
-    for (int j = 0; j < SCAN_PACKET_LIST_SIZE; j++) {
-      char s[6];
-      String helper = String(PERCENT)+DASH+(String)width+D;
-      if(j==0) sprintf(s,helper.c_str(),SCAN_PACKET_LIST_SIZE-1);
-      else if(j==SCAN_PACKET_LIST_SIZE/2) sprintf(s,helper.c_str(),SCAN_PACKET_LIST_SIZE/2);
-      else if(j==SCAN_PACKET_LIST_SIZE-1) sprintf(s,helper.c_str(),0);
-      else{
-        int k;
-        for (k = 0; k < width; k++) s[k] = SPACE;
-        s[k] = ENDOFLINE;
-      }
-      prnt(s);
-    } 
-    prntln(VERTICALBAR);
-  }
-
   // ===== START/STOP AP ===== //
   // startap [-p <path][-s <ssid>] [-pswd <password>] [-ch <channel>] [-h] [-cp]
   else if (eqlsCMD(0, CLI_STARTAP)) {
@@ -1103,21 +1158,6 @@ void SerialInterface::runCommand(String input) {
     } else if(eqlsCMD(1,CLI_OFF)){
       displayUI.off();
     }
-  }
-  
-  // ===== NOT FOUND ===== //
-  else {
-    prnt(CLI_ERROR_NOT_FOUND_A);
-    prnt(input);
-    prntln(CLI_ERROR_NOT_FOUND_B);
-    // some debug stuff
-    /*
-      Serial.println(list->get(0));
-      for(int i=0;i<input.length();i++){
-      Serial.print(input.charAt(i), HEX);
-      Serial.print(' ');
-      }
-    */
   }
 }
 

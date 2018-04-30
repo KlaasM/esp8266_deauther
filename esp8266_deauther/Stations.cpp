@@ -221,6 +221,7 @@ uint8_t Stations::getCh(int num) {
 
 void Stations::select(int num) {
   if (!check(num)) return;
+  
   internal_select(num);
   prnt(ST_SELECTED_STATION);
   prntln(num);

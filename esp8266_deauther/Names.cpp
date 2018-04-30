@@ -157,7 +157,7 @@ void Names::printAll() {
 }
 
 void Names::printSelected() {
-  prntln(N_TABLE_HEADER);
+ prntln(N_HEADER);
   int max = selected();
   int c = count();
   
@@ -277,6 +277,7 @@ void Names::setBSSID(int num, String bssidStr) {
 
 void Names::select(int num) {
   if (!check(num)) return;
+  
   internal_select(num);
   prnt(N_SELECTED);
   prntln(getName(num));

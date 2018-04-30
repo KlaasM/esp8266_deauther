@@ -19,6 +19,8 @@ extern "C" {
 #include "DigitalLed.h"
 #include "RGBLed.h"
 #include "Neopixel.h"
+#include "CommandParser.h"
+#include "Command.h"
 
 #ifdef DIGITAL_LED
 extern DigitalLed led;
@@ -73,7 +75,9 @@ class SerialInterface {
     void error(String message);
     void parameterError(String parameter);
     
-  private:
+  private: 
+    CommandParser* cli;
+
     bool enabled;
     SimpleList<String>* list;
     bool executing = false;

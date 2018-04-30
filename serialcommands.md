@@ -2,10 +2,10 @@
 
 **Overview:**  
 - [`help`](#help)
-- [`scan [<all/aps/stations>] [-t <time>] [-c <continue-time>] [-ch <channel>]`](#scan)
+- [`scan [<mode: -ap, -st, -all>] [-t <time>] [-c <continue-time>] [-ch <channel>]`](#scan)
 - [`show [selected] [<all/aps/stations/names/ssids>]`](#show)
-- [`select [<all/aps/stations/names>] [<id>]`](#select-deselect)
-- [`deselect [<all/aps/stations/names>] [<id>]`](#select-deselect)
+- [`select [<type: -a, -ap, -st, -n>] [-i <id>]`](#select-deselect)
+- [`deselect [<type: -a, -ap, -st, -n>] [-i <id>]`](#select-deselect)
 - [`add ssid <ssid> [-wpa2] [-cl <clones>] [-f]`](#add-ssid)
 - [`add ssid -ap <id> [-cl <clones>] [-f]`](#add-ssid)
 - [`add name <name> [-ap <id>] [-s] [-f]`](#add-name)
@@ -32,7 +32,7 @@
 - [`get <setting>`](#get)
 - [`set <setting> <value>`](#set)
 - [`reset`](#reset)
-- [`stop <all/scan/attack>`](#stop)
+- [`stop [<mode: -all, -scan, -attack, -script>]`](#stop)
 - [`chicken`](#chicken)
 - [`reboot`](#reboot)
 - [`run <file>`](#run)
@@ -45,7 +45,7 @@
 - [`led <r> <g> <b> [<brightness>]`](#led)
 - [`led <#rrggbb> [<brightness>]`](#led)
 - [`led <enable/disable>`](#led)
-- [`draw`](#draw)
+- [`draw [-w <width>] [-h <height>]`](#draw)
 - [`startap`](#startap)
 - [`stopap`](#startap)
 - [`screen mode <menu/packetmonitor/buttontest/loading>`](#screen)
@@ -59,13 +59,12 @@
 Prints out list with all commands.  
 
 ## SCAN  
-`scan [<all/aps/stations/wifi>] [-t <time>] [-c <continue-time>] [-ch <channel>]`  
+`scan [<mode: -ap, -st, -all>] [-t <time>] [-c <continue-time>] [-ch <channel>]`  
 **Starts scan with given parameters.**  
 **Modes** (optional, default = all): 
   - all (-a)  
-  - aps (-ap)  
+  - accesspoints (-ap)  
   - stations (-st)  
-  - wifi (-w)  
 **Mode must be the first parameter!**
 **time** [-t] (optional, default = 15s): How long it should scan for stations (client devices) in seconds.  
 **continue** [-c] (optional): How many seconds until it should scan again.  
@@ -87,14 +86,14 @@ Prints out the scan results (access points and stations), the saved device names
   - ssids (-ss)  
   
 ## SELECT-DESELECT
-`select [<all/aps/stations/names>] [<id>]`  
-`deselect [<all/aps/stations/names>] [<id>]`  
+`select [<type: -a, -ap, -st, -n>] [-i <id>]`  
+`deselect [<type: -a, -ap, -st, -n>] [-i <id>]`  
 (De)Selects a specific or all access points, stations and device names.  
 **Types** (optional, default = all):
   - all (-a)  
-  - aps (-ap)  
-  - stations (-st)  
-  - names (-b)  
+  - accesspoint (-ap)  
+  - station (-st)  
+  - name (-n)  
   
 **ID** (optional): ID of the AP/station/device you want to select.  
 
@@ -239,12 +238,12 @@ Changes the value of the setting.
 Resets the settings.  
 
 ## STOP
-`stop [<all/scan/attack/script>]`  
+`stop [<mode: -all, -scan, -attack, -script>]`  
 Stops ongoing tasks.  
 **Modes** (optional, default = all):
-  - all (-a)
-  - scan (-sc)
-  - attack (-a)
+  - all
+  - scan
+  - attack
   - script
 
 ## CHICKEN
@@ -311,7 +310,7 @@ But you can also specify the delay time in seconds directly:
 `delay 1s`.  
 
 ## DRAW
-`draw [<height>] [<width>]`  
+`draw [-w <width>] [-h <height>]`  
 Draws packet monitor graph.  
 Will only work if you run a wifi scan first, i.e. `scan wifi -t 65s -ch 1`.  
 - **height** (optional, default = 25): Height of the graph in characters.  
