@@ -224,7 +224,7 @@ SerialInterface::SerialInterface() {
     } 
     prntln(VERTICALBAR);
   }, [](){
-    prntln("Invalid format. Did you mean \" draw [-w <width>] [-h <height>]\"?");
+    prntln(String(F("Invalid format. Did you mean \" draw [-w <width>] [-h <height>]\"?")));
   });
   drawCmd->addOptArg("w","width","2");
   drawCmd->addOptArg("h","height","25");
@@ -274,7 +274,7 @@ SerialInterface::SerialInterface() {
     
     scan.start(scanMode, time, nextmode, continueTime, channelHop, channel);
   },[](){
-    prntln("Invalid format. Did you mean \"scan [<mode: -ap, -st, -all>] [-t <time>] [-c <continue-time>] [-ch <channel>]\"?");
+    prntln(String(F("Invalid format. Did you mean \"scan [<mode: -ap, -st, -all>] [-t <time>] [-c <continue-time>] [-ch <channel>]\"?")));
   });
   
   scanCmd->addOptArg("a","all","");
@@ -304,7 +304,7 @@ SerialInterface::SerialInterface() {
       if(hasSSID && !selected) ssids.printAll();
     }
   },[](){
-    prntln("Invalid format. Did you mean \"scan show [-s] [<mode: -a, -ap, -st, -n, -ss>]\"?");
+    prntln(String(F("Invalid format. Did you mean \"scan show [-s] [<mode: -a, -ap, -st, -n, -ss>]\"?")));
   });
   showCmd->addOptArg("s", "selected", "");
   showCmd->addOptArg("a", "all", "");
@@ -331,7 +331,7 @@ SerialInterface::SerialInterface() {
       if(hasName) hasId ? names.select(idValue) : names.selectAll();
     }
   }, [](){
-    prntln("Invalid format. Did you mean \"select [<type: -a, -ap, -st, -n>] [-i <id>]\"?");
+    prntln(String(F("Invalid format. Did you mean \"select [<type: -a, -ap, -st, -n>] [-i <id>]\"?")));
   });
   selectCmd->addOptArg("a","all","");
   selectCmd->addOptArg("ap","accesspoint","");
@@ -357,7 +357,7 @@ SerialInterface::SerialInterface() {
       if(hasName) hasId ? names.deselect(idValue) : names.deselectAll();
     }
   }, [](){
-    prntln("Invalid format. Did you mean \"deselect [<type: -a, -ap, -st, -n>] [<id>]\"?");
+    prntln(String(F("Invalid format. Did you mean \"deselect [<type: -a, -ap, -st, -n>] [<id>]\"?")));
   });
   deselectCmd->addOptArg("a","all","");
   deselectCmd->addOptArg("ap","accesspoint","");
